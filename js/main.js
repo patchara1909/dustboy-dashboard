@@ -165,8 +165,27 @@ const initApp = () => {
     const avgHumidEl = document.getElementById('avg-humid');
     const feedList = document.getElementById('live-feed');
 
-    statusEl.textContent = 'SIMULATION MODE';
+    statusEl.textContent = 'SIMULATION MODE (SCRAMBLED RAW DATA)';
     statusEl.classList.add('connected'); // Still show as "connected" for simulation
+
+    // Scramble Animation Function
+    const scrambleText = (el, finalValue, duration = 600) => {
+        const chars = '0123456789';
+        let start = Date.now();
+        const length = String(finalValue).length;
+        const interval = setInterval(() => {
+            if (Date.now() - start > duration) {
+                clearInterval(interval);
+                el.textContent = finalValue;
+                return;
+            }
+            let scrambled = '';
+            for (let i = 0; i < length; i++) {
+                scrambled += chars[Math.floor(Math.random() * chars.length)];
+            }
+            el.textContent = scrambled;
+        }, 50);
+    };
 
     // Simulation Mode: Generate random data every 5 seconds
     setInterval(() => {
@@ -186,27 +205,19 @@ const initApp = () => {
             const humid = Math.floor(Math.random() * 60) + 30;
 
             sensors.add(sensorId);
-            totalSensorsEl.textContent = sensors.size;
+            scrambleText(totalSensorsEl, sensors.size);
 
-            pm25Sum += pm25;
-            tempSum += temp;
-            humidSum += humid;
-            pm25Count++;
+            // Animate dashboard numbers
+            scrambleText(avgPm25El, pm25);
+            scrambleText(avgTempEl, temp);
+            scrambleText(avgHumidEl, humid);
 
-            const avgPM = (pm25Sum / pm25Count).toFixed(1);
-            const avgT = (tempSum / pm25Count).toFixed(1);
-            const avgH = (humidSum / pm25Count).toFixed(1);
-
-            avgPm25El.textContent = avgPM;
-            avgTempEl.textContent = avgT;
-            avgHumidEl.textContent = avgH;
-
-            // Update chart on every tick since it's 5s intervals
+            // Update chart directly with raw random values
             const timeLabel = new Date().toLocaleTimeString();
             pmChart.data.labels.push(timeLabel);
-            pmChart.data.datasets[0].data.push(avgPM);
-            pmChart.data.datasets[1].data.push(avgT);
-            pmChart.data.datasets[2].data.push(avgH);
+            pmChart.data.datasets[0].data.push(pm25);
+            pmChart.data.datasets[1].data.push(temp);
+            pmChart.data.datasets[2].data.push(humid);
 
             if (pmChart.data.labels.length > 20) {
                 pmChart.data.labels.shift();
@@ -219,7 +230,7 @@ const initApp = () => {
             // Calculate rate
             const elapsedMins = (Date.now() - startTime) / 60000;
             if (elapsedMins > 0) {
-                msgRateEl.textContent = Math.round(msgCount / elapsedMins);
+                scrambleText(msgRateEl, Math.round(msgCount / elapsedMins));
             }
 
             // Update Feed UI
