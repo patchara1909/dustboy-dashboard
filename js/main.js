@@ -78,18 +78,42 @@ const initChart = () => {
         type: 'line',
         data: {
             labels: [],
-            datasets: [{
-                label: 'Average PM2.5 (µg/m³)',
-                data: [],
-                borderColor: '#00f3ff',
-                backgroundColor: gradient,
-                borderWidth: 2,
-                pointBackgroundColor: '#ff00ea',
-                pointBorderColor: '#fff',
-                pointRadius: 4,
-                fill: true,
-                tension: 0.4
-            }]
+            datasets: [
+                {
+                    label: 'Avg PM2.5 (µg/m³)',
+                    data: [],
+                    borderColor: '#00f3ff',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    pointBackgroundColor: '#00f3ff',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Avg Heat (°C)',
+                    data: [],
+                    borderColor: '#ff5e00',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#ff5e00',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Avg Rain/Humid (%)',
+                    data: [],
+                    borderColor: '#0084ff',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#0084ff',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    fill: false,
+                    tension: 0.4
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -128,6 +152,8 @@ const initApp = () => {
     let msgCount = 0;
     let pm25Sum = 0;
     let pm25Count = 0;
+    let tempSum = 0;
+    let humidSum = 0;
     let startTime = Date.now();
 
     // DOM Elements
@@ -135,6 +161,8 @@ const initApp = () => {
     const totalSensorsEl = document.getElementById('total-sensors');
     const msgRateEl = document.getElementById('msg-rate');
     const avgPm25El = document.getElementById('avg-pm25');
+    const avgTempEl = document.getElementById('avg-temp');
+    const avgHumidEl = document.getElementById('avg-humid');
     const feedList = document.getElementById('live-feed');
 
     console.log("Connecting to MQTT...", brokerUrl);
@@ -162,29 +190,45 @@ const initApp = () => {
 
             let pm25 = payload.pm25 || payload.PM25 || 0;
             let pm10 = payload.pm10 || payload.PM10 || 0;
+            let temp = payload.temp || payload.temperature || payload.Temp || 0;
+            let humid = payload.humid || payload.humidity || payload.Humid || 0;
 
             // Extract from JSON payload properly if nested
             // Sometimes it's {"value": {"pm25": ...}}
-            if (payload.value && payload.value.pm25 !== undefined) {
-                pm25 = payload.value.pm25;
-                pm10 = payload.value.pm10;
+            if (payload.value && (payload.value.pm25 !== undefined || payload.value.temp !== undefined)) {
+                pm25 = payload.value.pm25 || pm25;
+                pm10 = payload.value.pm10 || pm10;
+                temp = payload.value.temp || temp;
+                humid = payload.value.humid || humid;
             }
 
-            if (pm25 > 0) {
+            if (pm25 > 0 || temp > 0) {
                 pm25Sum += pm25;
+                tempSum += temp;
+                humidSum += humid;
                 pm25Count++;
-                const avg = (pm25Sum / pm25Count).toFixed(1);
-                avgPm25El.textContent = avg;
+
+                const avgPM = (pm25Sum / pm25Count).toFixed(1);
+                const avgT = (tempSum / pm25Count).toFixed(1);
+                const avgH = (humidSum / pm25Count).toFixed(1);
+
+                avgPm25El.textContent = avgPM;
+                avgTempEl.textContent = avgT;
+                avgHumidEl.textContent = avgH;
 
                 // Update chart every 20 valid hits (downsampling rate to prevent overload)
                 if (pm25Count % 20 === 0 || pm25Count === 1) {
                     const timeLabel = new Date().toLocaleTimeString();
                     pmChart.data.labels.push(timeLabel);
-                    pmChart.data.datasets[0].data.push(avg);
+                    pmChart.data.datasets[0].data.push(avgPM);
+                    pmChart.data.datasets[1].data.push(avgT);
+                    pmChart.data.datasets[2].data.push(avgH);
 
                     if (pmChart.data.labels.length > 20) {
                         pmChart.data.labels.shift();
                         pmChart.data.datasets[0].data.shift();
+                        pmChart.data.datasets[1].data.shift();
+                        pmChart.data.datasets[2].data.shift();
                     }
                     pmChart.update();
                 }
@@ -197,14 +241,14 @@ const initApp = () => {
             }
 
             // Update Feed UI
-            updateFeed(sensorId, pm25, pm10);
+            updateFeed(sensorId, pm25, pm10, temp, humid);
 
         } catch (e) {
             console.error("Parse Error:", e);
         }
     });
 
-    const updateFeed = (id, pm25, pm10) => {
+    const updateFeed = (id, pm25, pm10, temp, humid) => {
         const li = document.createElement('li');
         li.className = 'feed-item';
 
@@ -215,9 +259,11 @@ const initApp = () => {
 
         li.innerHTML = `
             <div class="feed-id">ID: ${id.substring(0, 8)}... | ${new Date().toLocaleTimeString()}</div>
-            <div class="feed-data">
-                <span class="${pmClass}">PM2.5: ${pm25} µg/m³</span>
-                <span>PM10: ${pm10}</span>
+            <div class="feed-data" style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                <span class="${pmClass}">PM2.5: ${pm25}</span>
+                <span class="${pmClass}">PM10: ${pm10}</span>
+                <span style="color:#ff5e00">Heat: ${temp}°C</span>
+                <span style="color:#0084ff">Rain/Humid: ${humid}%</span>
             </div>
         `;
 

@@ -130,7 +130,7 @@ header p {
 
 .stat-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1.5rem;
 }
 
@@ -173,6 +173,16 @@ header p {
 .yellow-glow .stat-value {
     color: var(--yellow);
     text-shadow: 0 0 15px rgba(255, 184, 0, 0.5);
+}
+
+.orange-glow .stat-value {
+    color: #ff5e00;
+    text-shadow: 0 0 15px rgba(255, 94, 0, 0.5);
+}
+
+.blue-glow .stat-value {
+    color: #0084ff;
+    text-shadow: 0 0 15px rgba(0, 132, 255, 0.5);
 }
 
 /* Chart Container */
