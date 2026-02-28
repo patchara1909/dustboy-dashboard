@@ -165,74 +165,56 @@ const initApp = () => {
     const avgHumidEl = document.getElementById('avg-humid');
     const feedList = document.getElementById('live-feed');
 
-    console.log("Connecting to MQTT...", brokerUrl);
-    const client = mqtt.connect(brokerUrl);
+    statusEl.textContent = 'SIMULATION MODE';
+    statusEl.classList.add('connected'); // Still show as "connected" for simulation
 
-    client.on('connect', () => {
-        console.log("Connected to MQTT broker");
-        statusEl.textContent = 'CONNECTED - LIVE STREAM';
-        statusEl.classList.add('connected');
-        client.subscribe('DUSTBOY/+/+/+/status', (err) => {
-            if (err) console.error("Subscribe error:", err);
-            else console.log("Subscribed to DUSTBOY/+/+/+/status");
-        });
-    });
-
-    client.on('message', (topic, message) => {
+    // Simulation Mode: Generate random data every 5 seconds
+    setInterval(() => {
         try {
             msgCount++;
-            const payload = JSON.parse(message.toString());
-            const idMatch = topic.match(DUSTBOY\/(?:[^/]*\/){2}([^/]*)\/status/);
-            const sensorId = idMatch ? idMatch[1] : 'Unknown';
+
+            // Generate Random Values
+            const sensorId = 'SIM-' + Math.floor(Math.random() * 9000 + 1000);
+
+            // Random PM2.5 (10 - 150)
+            const pm25 = Math.floor(Math.random() * 140) + 10;
+            // Random PM10 (PM2.5 to PM2.5 + 50)
+            const pm10 = pm25 + Math.floor(Math.random() * 50);
+            // Random Temperature (20 - 45 °C)
+            const temp = Math.floor(Math.random() * 25) + 20;
+            // Random Humidity (30 - 90 %)
+            const humid = Math.floor(Math.random() * 60) + 30;
 
             sensors.add(sensorId);
             totalSensorsEl.textContent = sensors.size;
 
-            let pm25 = payload.pm25 || payload.PM25 || 0;
-            let pm10 = payload.pm10 || payload.PM10 || 0;
-            let temp = payload.temp || payload.temperature || payload.Temp || 0;
-            let humid = payload.humid || payload.humidity || payload.Humid || 0;
+            pm25Sum += pm25;
+            tempSum += temp;
+            humidSum += humid;
+            pm25Count++;
 
-            // Extract from JSON payload properly if nested
-            // Sometimes it's {"value": {"pm25": ...}}
-            if (payload.value && (payload.value.pm25 !== undefined || payload.value.temp !== undefined)) {
-                pm25 = payload.value.pm25 || pm25;
-                pm10 = payload.value.pm10 || pm10;
-                temp = payload.value.temp || temp;
-                humid = payload.value.humid || humid;
+            const avgPM = (pm25Sum / pm25Count).toFixed(1);
+            const avgT = (tempSum / pm25Count).toFixed(1);
+            const avgH = (humidSum / pm25Count).toFixed(1);
+
+            avgPm25El.textContent = avgPM;
+            avgTempEl.textContent = avgT;
+            avgHumidEl.textContent = avgH;
+
+            // Update chart on every tick since it's 5s intervals
+            const timeLabel = new Date().toLocaleTimeString();
+            pmChart.data.labels.push(timeLabel);
+            pmChart.data.datasets[0].data.push(avgPM);
+            pmChart.data.datasets[1].data.push(avgT);
+            pmChart.data.datasets[2].data.push(avgH);
+
+            if (pmChart.data.labels.length > 20) {
+                pmChart.data.labels.shift();
+                pmChart.data.datasets[0].data.shift();
+                pmChart.data.datasets[1].data.shift();
+                pmChart.data.datasets[2].data.shift();
             }
-
-            if (pm25 > 0 || temp > 0) {
-                pm25Sum += pm25;
-                tempSum += temp;
-                humidSum += humid;
-                pm25Count++;
-
-                const avgPM = (pm25Sum / pm25Count).toFixed(1);
-                const avgT = (tempSum / pm25Count).toFixed(1);
-                const avgH = (humidSum / pm25Count).toFixed(1);
-
-                avgPm25El.textContent = avgPM;
-                avgTempEl.textContent = avgT;
-                avgHumidEl.textContent = avgH;
-
-                // Update chart every 20 valid hits (downsampling rate to prevent overload)
-                if (pm25Count % 20 === 0 || pm25Count === 1) {
-                    const timeLabel = new Date().toLocaleTimeString();
-                    pmChart.data.labels.push(timeLabel);
-                    pmChart.data.datasets[0].data.push(avgPM);
-                    pmChart.data.datasets[1].data.push(avgT);
-                    pmChart.data.datasets[2].data.push(avgH);
-
-                    if (pmChart.data.labels.length > 20) {
-                        pmChart.data.labels.shift();
-                        pmChart.data.datasets[0].data.shift();
-                        pmChart.data.datasets[1].data.shift();
-                        pmChart.data.datasets[2].data.shift();
-                    }
-                    pmChart.update();
-                }
-            }
+            pmChart.update();
 
             // Calculate rate
             const elapsedMins = (Date.now() - startTime) / 60000;
@@ -244,9 +226,9 @@ const initApp = () => {
             updateFeed(sensorId, pm25, pm10, temp, humid);
 
         } catch (e) {
-            console.error("Parse Error:", e);
+            console.error("Simulation Error:", e);
         }
-    });
+    }, 5000); // 5 seconds interval
 
     const updateFeed = (id, pm25, pm10, temp, humid) => {
         const li = document.createElement('li');
