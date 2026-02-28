@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DustBoy 3D Live Dashboard</title>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- MQTT.js -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div id="particle-canvas"></div>
+
+    <div class="dashboard-container">
+        <header class="glow-header">
+            <h1><span class="text-cyan">DUST</span><span class="text-magenta">BOY</span> <span
+                    class="text-white">NEXUS</span></h1>
+            <p>Live MQTT Telemetry Stream</p>
+            <div id="connection-status" class="status-indicator">Connecting...</div>
+        </header>
+
+        <main class="grid-layout">
+            <!-- Global Stats -->
+            <section class="glass-panel main-stats">
+                <h2>Network Overview</h2>
+                <div class="stat-grid">
+                    <div class="stat-box cyan-glow">
+                        <span class="stat-label">Active Sensors</span>
+                        <span class="stat-value" id="total-sensors">0</span>
+                    </div>
+                    <div class="stat-box magenta-glow">
+                        <span class="stat-label">Messages/min</span>
+                        <span class="stat-value" id="msg-rate">0</span>
+                    </div>
+                    <div class="stat-box yellow-glow">
+                        <span class="stat-label">Avg PM2.5</span>
+                        <span class="stat-value" id="avg-pm25">0</span><span class="unit"> µg/m³</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Chart -->
+            <section class="glass-panel chart-container">
+                <h2>PM2.5 Live Matrix</h2>
+                <canvas id="pmChart"></canvas>
+            </section>
+
+            <!-- Latest Data Feed -->
+            <section class="glass-panel log-container">
+                <h2>Real-time Feed</h2>
+                <ul id="live-feed" class="feed-list">
+                    <!-- Feed items injected here -->
+                </ul>
+            </section>
+        </main>
+
+        <footer>
+            Built with 💜 by Oracle Antigravity
+        </footer>
+    </div>
+
+    <!-- Three.js for 3D background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
